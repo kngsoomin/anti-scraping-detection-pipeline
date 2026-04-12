@@ -1,0 +1,42 @@
+project:
+  name: anti-scraping-detection-pipeline
+
+runtime:
+  sample_mode: false
+  sample_row_limit: null
+  process_date: null
+
+spark:
+  app_name_prefix: anti-scraping
+  master: local[*]
+  parquet_vectorized_reader: false
+  max_partition_bytes: 16777216
+  shuffle_partitions: 32
+
+paths:
+  base_uri: data/output
+  raw_text_input: data/kaggle/access.log
+  normalized_events: normalized_events
+  quarantined_raw_events: quarantined_raw_events
+  sessionized_events: sessionized_events
+  session_features: session_features
+  suspicious_sessions: suspicious_sessions
+  daily_abuse_summary: daily_abuse_summary
+  daily_abuse_summary_sample_json: daily_abuse_summary_sample_json
+
+sessionization:
+  timeout_seconds: 1800
+
+detection:
+  thresholds:
+    requests_per_minute: 30
+    unique_paths: 20
+    unique_path_templates: 20
+    missing_referer_ratio: 0.8
+    html_to_asset_ratio: 3.0
+    status_4xx_ratio: 0.3
+    mean_inter_request_gap_max: 2
+  risk_bands:
+    high_min_score: 4
+    medium_min_score: 2
+    low_min_score: 1

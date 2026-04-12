@@ -1,0 +1,12 @@
+runtime:
+  sample_mode: True
+  sample_row_limit: 100000
+
+spark:
+  app_name_prefix: anti-scraping-local
+  master: local[*]
+  shuffle_partitions: 16
+
+paths:
+  base_uri: data/output
+  raw_text_input: data/kaggle/access.log
