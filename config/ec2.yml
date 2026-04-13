@@ -13,10 +13,10 @@ spark:
 paths:
   base_uri: s3a://anti-scraping-soomin/anti-scraping
   raw_text_input: /opt/anti-scraping/data/access.log
-  normalized_events: s3a://anti-scraping-soomin/anti-scraping/normalized_events
-  quarantined_raw_events: s3a://anti-scraping-soomin/anti-scraping/quarantined_raw_events
-  sessionized_events: s3a://anti-scraping-soomin/anti-scraping/sessionized_events
-  session_features: s3a://anti-scraping-soomin/anti-scraping/session_features
-  suspicious_sessions: s3a://anti-scraping-soomin/anti-scraping/suspicious_sessions
-  daily_abuse_summary: s3a://anti-scraping-soomin/anti-scraping/daily_abuse_summary
-  daily_abuse_summary_sample_json: s3a://anti-scraping-soomin/anti-scraping/daily_abuse_summary_sample_json
+  normalized_events: normalized_events
+  quarantined_raw_events: quarantined_raw_events
+  sessionized_events: sessionized_events
+  session_features: session_features
+  suspicious_sessions: suspicious_sessions
+  daily_abuse_summary: daily_abuse_summary
+  daily_abuse_summary_sample_json: daily_abuse_summary_sample_json
