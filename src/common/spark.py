@@ -25,6 +25,18 @@ def get_spark(app_name_suffix: str, config: AppConfig) -> SparkSession:
             "spark.sql.shuffle.partitions",
             str(spark_cfg["shuffle_partitions"]),
         )
+        .config(
+            "spark.default.parallelism",
+            str(spark_cfg["default_parallelism"]),
+        )
+        .config(
+            "spark.driver.memory",
+            str(spark_cfg["driver_memory"]),
+        )
+        .config(
+            "spark.executor.memory",
+            str(spark_cfg["executor_memory"]),
+        )
     )
 
     return builder.getOrCreate()

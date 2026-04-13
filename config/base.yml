@@ -12,6 +12,9 @@ spark:
   parquet_vectorized_reader: false
   max_partition_bytes: 16777216
   shuffle_partitions: 32
+  driver_memory: 4g
+  executor_memory: 4g
+  default_parallelism: 8
 
 paths:
   base_uri: data/output

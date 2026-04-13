@@ -5,7 +5,10 @@ runtime:
 spark:
   app_name_prefix: anti-scraping-local
   master: local[*]
-  shuffle_partitions: 16
+  shuffle_partitions: 8
+  driver_memory: 6g
+  executor_memory: 6g
+  default_parallelism: 8
 
 paths:
   base_uri: data/output

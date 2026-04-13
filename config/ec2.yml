@@ -5,7 +5,10 @@ runtime:
 spark:
   app_name_prefix: anti-scraping-ec2
   master: local[*]
-  shuffle_partitions: 200
+  shuffle_partitions: 32
+  driver_memory: 8g
+  executor_memory: 8g
+  default_parallelism: 8
 
 paths:
   base_uri: s3a://anti-scraping-soomin/anti-scraping
