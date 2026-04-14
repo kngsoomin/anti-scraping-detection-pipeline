@@ -1,7 +1,6 @@
 from __future__ import annotations
 
-from jobs.cli_utils import parse_args, validate_cli_args
-
+import sys
 from src.common.config import load_config
 from src.common.paths import resolve_input_path, resolve_output_path
 from src.common.spark import get_spark
@@ -37,6 +36,5 @@ def main(env_name: str) -> None:
 
 
 if __name__ == "__main__":
-    args = parse_args()
-    validate_cli_args(args)
-    main(args.env_name)
+    env_name = sys.argv[1] if len(sys.argv) > 1 else "local"
+    main(env_name)
