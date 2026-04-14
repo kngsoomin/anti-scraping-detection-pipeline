@@ -1,15 +1,23 @@
 # From Behavior to Interpretation: An Explainable Bot Detection Pipeline
 
+
 ## 1. What this project does
 This project builds **a replayable anti-scraping analysis pipelin**e that transforms raw web access logs into explainable, session-level detection outputs.
 
 It identifies suspicious traffic using behavioral signals, while preserving full traceability back to request-level events. 
 In addition to detection outputs, the pipeline also produces a reusable session-level feature dataset for downstream analysis and model development.
 
+### TL;DR 🤓
+
+- Builds a reliable data pipeline to detect suspicious web traffic using session-level behavioral signals  
+- Preserves full traceability from detection results back to raw request events  
+- Separates detection (behavior) from interpretation (context) to improve explainability  
+- Produces both analyst-facing detection outputs and ML-ready feature datasets  
+
 
 ## 2. Why this problem is hard
 
-Detecting scraping behavior from web logs is challenging because legitimate crawlers and malicious scrapers often exhibit similar behavioral patterns.
+Detecting scraping behavior from web logs is difficult because legitimate crawlers and malicious scrapers often exhibit similar patterns.
 
 Both can generate:
 
@@ -17,11 +25,8 @@ Both can generate:
 - systematic navigation across many paths  
 - missing referer signals  
 
-As a result, purely behavior-based detection can identify automated traffic, but cannot reliably distinguish between benign and malicious intent.
-
-This challenge is further complicated by the fact that contextual signals such as user-agent strings and hostnames can be spoofed, making it difficult to fully trust identity-based indicators.
-
-This creates a gap between detection and interpretation, where additional context is required to understand whether flagged traffic represents normal crawler activity or potential abuse.
+As a result, behavior-based detection can identify automated activity, but cannot reliably distinguish between benign and malicious intent.
+This creates a gap between detection and interpretation, where behavior alone is insufficient to understand flagged traffic.
 
 
 ## 3. What this pipeline produces
@@ -64,13 +69,9 @@ It serves as a reusable input for:
 
 ## 4. How it works
 
-The pipeline processes raw web access logs through a series of transformations to produce session-level detection outputs.
-
 ### Data
-The pipeline is built on publicly available web server access logs.
-
 - `access.log`  
-  Raw web access logs in Apache combined log format, containing request-level information such as IP, timestamp, request path, status code, referer, and user-agent.  
+  Raw web access logs in Apache combined log format, containing request-level information such as IP, timestamp, request path, status code, referer, and user-agent.
   The dataset contains approximately 10 million requests across 5 days (2019-01-22 to 2019-01-26).
 
 - `ip_hostname_lookup.csv`  
@@ -80,132 +81,131 @@ The access logs serve as the primary input for behavioral analysis, while the ho
 
 ### Data flow
 
-[draw.io diagram]
+![dataflow](docs/data-flow.drawio.png)
+
 
 ### Layers
 
+#### Core transformations
+
 - **Raw Logs**  
-  Immutable, append-only source of truth for all incoming web traffic.
+  Immutable, append-only source data for incoming web traffic.  
+  Malformed or unparseable lines are isolated early and stored separately for inspection.
 
-- **Normalized Events**  
-  Request-level records extracted from raw logs, structured and cleaned without applying detection logic.
+- **Normalized Events (request-level)**  
+  Structured request records extracted from raw logs without applying detection logic.  
+  This layer standardizes core fields and applies path templating to generalize dynamic URLs into reusable patterns.
 
-- **Session Reconstruction**  
-  Groups requests into sessions based on `(src_ip, user_agent)` and an inactivity threshold.  
-  To ensure correct session boundaries across partitions, the pipeline includes a lookback window from the previous day, allowing sessions that span midnight to be reconstructed accurately.
+- **Sessionized Events (event-level)**  
+  Request-level records augmented with a `session_id`, derived from `(src_ip, user_agent)` and an inactivity threshold.  
+  A lookback window from the previous day is included to preserve session boundaries across partitions.
 
-- **Session Features**  
-  Aggregates session-level behavioral signals such as request frequency, navigation patterns, and inter-request timing.
+- **Session Features (session-level)**  
+  Aggregated behavioral features computed at the session grain.  
+  This layer converts event-level activity into a model-ready session representation.
 
-- **Context Enrichment**  
-  Adds lightweight contextual signals (e.g., hostname, known crawler indicators) to support interpretation.
+#### Data products
 
-- **Detection Outputs**  
-  Applies rule-based detection to identify suspicious sessions and generate explainable outputs.
+- **Session Features Enriched (session-level)**  
+  Session-level features augmented with lightweight context signals derived from hostname lookup and user-agent patterns.  
+  These signals are used for interpretation and are not part of the detection score itself.
+
+- **Suspicious Sessions (session-level)**  
+  Explainable detection output produced by rule-based scoring over behavioral features.  
+  Each session is assigned a `risk_band`, with contextual signals attached only as annotations.
+
+- **Daily Abuse Summary (daily-level)**  
+  Daily aggregate of suspicious activity for monitoring and reporting.  
+  This layer summarizes traffic patterns and risk distribution at a higher level.
+  
 
 ### Validation and Monitoring
 
-To ensure data reliability, the pipeline includes a validation layer applied at each stage of the transformation.
+The pipeline enforces data quality at every stage and records execution metadata for observability.
 
-The framework performs checks such as:
+- **Core validation checks**  
+  Row count consistency, grain consistency, duplicate detection, and null/range validation ensure that transformations preserve data integrity.
 
-- row count consistency between stages  
-- grain consistency (ensuring transformations do not unintentionally change row-level granularity)  
-- duplicate detection  
-- null value checks  
-- range and value validation for key features  
+- **Execution behavior**  
+  Error-level checks fail fast on critical issues, while warning-level checks surface non-blocking data quality concerns.
 
-These validations are categorized into error-level and warning-level checks.
+- **Quarantine handling**  
+  Malformed or unparseable raw lines are isolated during parsing to prevent invalid data from propagating downstream.
 
-Error-level validations (e.g., schema violations or critical data inconsistencies) cause the pipeline to fail fast, while warning-level validations allow processing to continue but surface potential issues for inspection.
-
-Malformed or unparseable raw log lines are isolated during the parsing stage through a quarantine mechanism, preventing them from affecting downstream transformations while preserving them for inspection.
-
-In addition, the pipeline collects structured metrics and runtime metadata for each execution.
-
-This includes not only basic execution signals, but also data quality and validation outcomes, such as:
-
-- row counts at each stage of the pipeline  
-- distribution of detection results (e.g., risk bands, flagged sessions)  
-- validation check results (e.g., duplicate counts, null violations, invalid feature ranges)  
-- parsing error statistics and quarantine counts  
-- execution metadata (run_id, process_date, duration, status)
-
-Each run produces a consolidated metadata record, enabling traceability, debugging, and monitoring of both pipeline execution and data quality over time.
-This metadata can be used to audit pipeline runs and identify data quality regressions across executions.
+- **Metrics and metadata**  
+  Each run produces structured metrics (e.g., row counts, validation results, risk distributions) and runtime metadata (run_id, duration, status) for traceability and debugging.
 
 
 ### Execution model
 
-The pipeline operates as a daily batch system driven by a `process_date`.
+The pipeline runs as a daily batch system driven by a `process_date`, producing partitioned outputs for each run.
 
-Each run processes logs for a given date and produces partitioned outputs, enabling:
+- **Batch processing model**  
+  Each run processes a single date or a date range, enabling reproducibility, backfill, and isolated reprocessing.
 
-- reproducibility  
-- backfill and replay  
-- isolation between runs  
+- **Partitioned outputs**  
+  Outputs are written by date, allowing efficient filtering and replay without reprocessing the entire dataset.
 
-While logs are assumed to arrive continuously, the current system focuses on offline analysis rather than real-time detection.
+- **Offline-first design**  
+  While implemented as a batch pipeline, the system is designed around partitioned data, enabling extension to near real-time processing without changes to the core data model.
+  
+- **Environment-aware execution**  
+  The same pipeline runs across environments (local and EC2) with configuration-driven behavior.  
+  Local runs operate on sampled data to avoid memory constraints, while EC2 processes the full dataset.
 
-The same execution model is used across environments (local and EC2), with configuration-driven behavior.
-
-For local development, the pipeline processes a sampled subset of data to avoid memory constraints, while the EC2 environment runs on the full dataset.
+- **Configuration-driven behavior**  
+  Key aspects of the pipeline are controlled via configuration, including detection thresholds and sampling limits.  
+  This allows the system to be tuned for different environments and data scales without modifying the core logic.
 
 
 ## 5. Results
 
-### 1. How do suspicious sessions differ from normal traffic?
+### Q1. How do suspicious sessions differ from normal traffic?
+
+**High-risk sessions exhibit bursty, machine-like behavior with near-zero inter-request gaps.**
 
 ![benign_vs_high_risk](docs/analytics/benign_vs_high_risk.png)
 
-High-risk sessions show significantly higher request rates and near-zero inter-request gaps, indicating machine-like behavior. 
+- significantly higher request rates  
+- near-zero inter-request gaps  
+- less natural navigation patterns compared to benign sessions
+  
 
-In contrast, benign sessions exhibit lower activity levels and more natural navigation patterns.
+### Q2. Where do known crawlers appear in the risk spectrum?
 
-### 2. Where do known crawlers appear in the risk spectrum?
-
-Behavioral signals alone can identify automated activity, but do not provide enough information to interpret the nature of that activity.
-
-To address this, the pipeline introduces lightweight context signals derived from two sources:
-
-- hostname lookups (mapping IPs to known domains)  
-- user-agent pattern matching for well-known crawlers  
-
-These signals are used to annotate sessions with indicators such as whether they are associated with known crawler infrastructure.
+**Known crawler signals are concentrated in low-risk sessions, while high-risk sessions are dominated by unresolved traffic.**
 
 ![context_signal_dist](docs/analytics/context_signal_dist.png)
 
-From the distribution, known crawler signals (`known_bot_candidate`) appear most frequently in the low-risk band, while high-risk sessions are largely composed of traffic without resolved host context (`unresolved_host`).
+- known_bot_candidate appears most frequently in the low-risk band  
+- high-risk sessions are largely associated with unresolved host context  
+- context signals help differentiate between recognizable crawlers and unknown automation  
 
-This provides additional context for interpreting flagged sessions, allowing analysts to differentiate between traffic with recognizable crawler signals and traffic without identifiable host information.
+Context signals are used only for interpretation and do not influence detection scores.
 
-Importantly, these context signals do not influence the detection score itself, but serve only as annotations for interpretation.
 
-### 3. What does a suspicious session actually look like?
+### Q3. What does a suspicious session actually look like?
 
-We examined a high-risk session at the request level.
+**Suspicious sessions often show rapid, repetitive request patterns within short time windows.**
 
 ![suspicious_session_example](docs/analytics/suspicious_session_example.png)
 
-The session begins with a browse page request and is followed almost immediately by a burst of rapid, consecutive requests.  
-Within a very short time window, repeated requests appear across multiple image-related path templates such as `/image/{id}/brand` and `/image/{id}/productModel/...`.
+- burst of consecutive requests after initial navigation  
+- repeated access to similar path templates (e.g., image endpoints)  
+- extremely short inter-request gaps  
 
-This illustrates how the session-level signals identified earlier (e.g., high request rate and low inter-request gap) correspond to actual request behavior.
+These patterns demonstrate how session-level signals map directly to request-level behavior, enabling traceability and inspection.
 
-More importantly, this demonstrates that detection results can be traced back to the underlying request sequence, allowing analysts to inspect and validate why a session was flagged.
 
-Not all high-risk sessions exhibit the same pattern.  
-In another example, the session contains repeated login, basket, and product requests with a high number of failed responses, showing that suspicious traffic can also appear as noisy or unstable interaction patterns rather than clean sequential crawling.
+### Q4. Is suspicious activity concentrated among a small number of IPs?
 
-### 4. Is suspicious activity concentrated among a small number of IPs?
+**Suspicious activity is highly concentrated, with a small number of IPs generating a large share of flagged sessions.**
 
 ![suspicious_ip_distribution](docs/analytics/suspicious_ip_dist.png)
 
-The distribution is based on sessions in the medium and high risk bands.
-
-Most IPs generate only a small number of suspicious sessions, while a small subset of IPs are responsible for a disproportionately large share.
-
-This suggests that suspicious activity is not uniformly distributed, and that repeated automated behavior can often be traced to a small set of recurring actors.
+- most IPs generate only a few suspicious sessions  
+- a small subset of IPs accounts for a disproportionate share  
+- repeated automated behavior can often be traced to recurring actors  
 
 
 ## 6. Limitations
@@ -326,16 +326,19 @@ The environment was chosen to balance cost and sufficient memory for Spark-based
 
 - Apache Spark for distributed data processing
 
+### Query / Analysis
+
+- Amazon Athena for interactive querying and result validation
 
 ## 10. How to Run
 
 #### Prerequisites
 
-- Python 3.13
-- Java 11+ (required for Spark)
-- Apache Spark (PySpark)
+- Python 3.10+  
+- Java 11+ (required for Spark)  
+- Apache Spark (PySpark)  
 
-#### Setup (local)
+#### Setup
 
 ```bash
 git clone https://github.com/kngsoomin/anti-scraping-detection-pipeline.git
@@ -344,56 +347,58 @@ cd anti-scraping-detection-pipeline
 python -m venv .venv
 source .venv/bin/activate
 pip install -r requirements.txt
-mkdir -p data/kaggle
 ```
 
-Download the dataset from Kaggle and place it at: `data/kaggle/access.log`
+#### Environment preparation
+
+The pipeline supports both local and EC2 execution.
+In all commands below, the final positional argument specifies the environment (`local` or `ec2`).
+
+**Local**
+
+- Download the dataset from Kaggle and place it at:
+  data/kaggle/access.log
+- Processes a sampled subset of data by default to avoid memory issues
+
+**EC2**
+
+- Upload the raw dataset (`access.log`) to the EC2 instance (local filesystem)
+- Configure your S3 bucket for output storage
+- Update `config/ec2.yml` with your environment settings
+- Outputs are written to S3
 
 #### One-time setup (raw partitioning)
+
 The raw dataset is provided as a single log file.
 Before running the pipeline, it must be partitioned into raw_logs/ by date:
 
 ```bash
-python -m jobs.run_prepare_raw_partitions local # The final argument specifies the environment (e.g., `local` or `ec2`).
+python -m jobs.run_prepare_raw_partitions <env_name>
 ```
 
-This step only needs to be executed once.
+This step only needs to be executed once per dataset.
 
-#### Run the pipeline (local)
+#### Run the pipeline
 
 Single date:
+
 ```bash
-python -m jobs.run_pipeline --process-date 2019-01-22 local
+python -m jobs.run_pipeline --process-date 2019-01-22 <env_name>
 ```
 
 Date range (backfill):
+
 ```bash
-python -m jobs.run_pipeline --start-date 2019-01-22 --end-date 2019-01-26 local
+python -m jobs.run_pipeline --start-date 2019-01-22 --end-date 2019-01-26 <env_name>
 ```
 
-#### Inspect outputs (local)
+#### Inspect outputs
 
 ```bash
-python -m jobs.inspect_outputs --process-date 2019-01-22 local
+python -m jobs.inspect_outputs --process-date 2019-01-22 <env_name>
 ```
 
 #### Notes
 
-- The local configuration (`config/local.yml`) processes a sampled subset of sessions by default to avoid memory issues. The sample size can be adjusted in the config file if needed.
-
-#### Run the pipeline (EC2)
-
-The same pipeline can be executed on EC2 with minimal changes.
-
-- Upload the raw dataset (`access.log`) to the EC2 instance  
-- Configure your S3 bucket for output storage  
-- Update `config/ec2.yml` with your environment settings
-- Set up ec2 env as you do for local environment
-
-Then run the same commands as above with `ec2` instead of `local`:
-
-```bash
-python -m jobs.run_pipeline --process-date 2019-01-22 ec2
-```
-
-The processing logic and execution flow remain identical across environments, with raw data read from the local filesystem and outputs written to S3.
+- The same execution logic is used across environments, with behavior controlled by configuration files
+- Local runs operate on sampled data, while EC2 processes the full dataset
