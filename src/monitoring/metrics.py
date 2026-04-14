@@ -92,6 +92,13 @@ def count_invalid_values(
     return df.filter(~F.col(col_name).isin(valid_values)).count()
 
 
+def safe_count_all_rows(spark: SparkSession, path: str) -> int:
+    try:
+        return spark.read.parquet(path).count()
+    except AnalysisException:
+        return 0
+
+
 def safe_count_rows(
     spark: SparkSession,
     path: str,
@@ -183,7 +190,7 @@ def collect_run_metrics(
             "event_date",
             process_date,
         ),
-        "quarantined_raw_lines": count_all_rows(
+        "quarantined_raw_lines": safe_count_all_rows(
             spark,
             quarantined_raw_lines_path,
         ),
