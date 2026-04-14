@@ -25,7 +25,7 @@ def main(env_name: str) -> None:
         .partitionBy("dt") \
         .parquet(raw_partitioned_output_path)
 
-    quarantine_df.write \
+    quarantine_df.coalesce(1).write \
         .mode("overwrite") \
         .parquet(quarantine_output_path)
 

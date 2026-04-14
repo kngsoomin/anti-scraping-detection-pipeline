@@ -38,13 +38,17 @@ def main(env_name: str, process_date: str) -> None:
         )
 
     parsed_df = spark.read.json(raw_df.rdd.map(parse_wrapper))
+    ok_df = parsed_df.filter(col("ok") == True)
+    failed_df = parsed_df.filter(col("ok") == False)
 
-    if process_date:
-        parsed_df = parsed_df.filter(col("event.event_date") == process_date)
+    normalized_df = (
+        ok_df
+        .select("event.*")
+        .filter(col("event_date") == process_date)
+    )
 
-    normalized_df = parsed_df.filter(col("ok") == True).select("event.*")
     error_df = (
-        parsed_df.filter(col("ok") == False)
+        failed_df
         .select("error.*")
         .withColumn("process_date", F.lit(process_date))
     )
@@ -54,7 +58,7 @@ def main(env_name: str, process_date: str) -> None:
      .partitionBy("event_date") \
      .parquet(normalized_output_path)
 
-    error_df.write \
+    error_df.coalesce(1).write \
         .mode("overwrite") \
         .partitionBy("process_date") \
         .parquet(quarantine_output_path)
