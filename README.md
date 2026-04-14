@@ -130,7 +130,8 @@ The pipeline enforces data quality at every stage and records execution metadata
   Error-level checks fail fast on critical issues, while warning-level checks surface non-blocking data quality concerns.
 
 - **Quarantine handling**  
-  Malformed or unparseable raw lines are isolated during parsing to prevent invalid data from propagating downstream.
+  Malformed or unparseable raw lines are isolated during parsing to prevent invalid data from propagating downstream.  
+  A summary of parsing failures is also generated to support debugging and monitoring.
 
 - **Metrics and metadata**  
   Each run produces structured metrics (e.g., row counts, validation results, risk distributions) and runtime metadata (run_id, duration, status) for traceability and debugging.
