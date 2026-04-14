@@ -25,11 +25,11 @@
         <mxCell id="EaysKhdKk98lRer-fW1I-8" parent="EaysKhdKk98lRer-fW1I-1" style="rhombus;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=13;fontStyle=2" value="Parse&amp;nbsp;&lt;div&gt;Success?&lt;/div&gt;" vertex="1">
           <mxGeometry height="70" width="135" x="40" y="380" as="geometry" />
         </mxCell>
-        <mxCell id="Rc9zYK8QX7VnSON6_yZz-44" edge="1" parent="EaysKhdKk98lRer-fW1I-1" source="EaysKhdKk98lRer-fW1I-9" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" target="Rc9zYK8QX7VnSON6_yZz-43">
+        <mxCell id="Lb7pLYW_lMS-LwFnPuJS-0" edge="1" parent="EaysKhdKk98lRer-fW1I-1" source="EaysKhdKk98lRer-fW1I-9" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;dashed=1;endArrow=async;endFill=0;dashPattern=1 1;" target="Rc9zYK8QX7VnSON6_yZz-5">
           <mxGeometry relative="1" as="geometry" />
         </mxCell>
         <mxCell id="EaysKhdKk98lRer-fW1I-9" parent="EaysKhdKk98lRer-fW1I-1" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;fontSize=13;" value="Quarantined&amp;nbsp;&lt;div&gt;Raw Events&lt;/div&gt;" vertex="1">
-          <mxGeometry height="50" width="118.75" x="48.11999999999999" y="500" as="geometry" />
+          <mxGeometry height="50" width="118.75" x="48.11999999999999" y="505" as="geometry" />
         </mxCell>
         <mxCell id="Rc9zYK8QX7VnSON6_yZz-56" edge="1" parent="EaysKhdKk98lRer-fW1I-1" source="EaysKhdKk98lRer-fW1I-11" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=0.5;exitY=0;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" target="EaysKhdKk98lRer-fW1I-13">
           <mxGeometry relative="1" as="geometry">
@@ -127,9 +127,6 @@
         </mxCell>
         <mxCell id="Rc9zYK8QX7VnSON6_yZz-41" edge="1" parent="EaysKhdKk98lRer-fW1I-1" source="EaysKhdKk98lRer-fW1I-30" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.924;entryY=0.006;entryDx=0;entryDy=0;entryPerimeter=0;dashed=1;dashPattern=1 1;endArrow=async;endFill=0;" target="Rc9zYK8QX7VnSON6_yZz-5">
           <mxGeometry relative="1" as="geometry" />
-        </mxCell>
-        <mxCell id="Rc9zYK8QX7VnSON6_yZz-43" parent="EaysKhdKk98lRer-fW1I-1" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=13;" value="Parse Failure Summary" vertex="1">
-          <mxGeometry height="50" width="118.75" x="46.55999999999999" y="580" as="geometry" />
         </mxCell>
         <mxCell id="Rc9zYK8QX7VnSON6_yZz-45" parent="EaysKhdKk98lRer-fW1I-1" style="text;html=1;whiteSpace=wrap;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;rounded=0;" value="&lt;div&gt;‣ add hostname&lt;br&gt;&lt;/div&gt;&lt;div&gt;‣ add UA signals&lt;/div&gt;" vertex="1">
           <mxGeometry height="40" width="100" x="680" y="260" as="geometry" />
