@@ -13,4 +13,4 @@ spark:
 paths:
   base_uri: s3a://anti-scraping-soomin/anti-scraping
   raw_text_input: /opt/anti-scraping/data/access.log
-  ip_hostname_lookup: /opt/anti-scraping/sample_data/ip_hostname_lookup.csv
+  ip_hostname_lookup: /home/ubuntu/anti-scraping-detection-pipeline/sample_data/ip_hostname_lookup.csv
