@@ -1,4 +1,3 @@
-from pyspark.sql import SparkSession
 from pyspark.sql import functions as F
 from pyspark.sql.window import Window
 
@@ -116,7 +115,6 @@ def build_sessionized_events(normalized_df, session_timeout_seconds: int):
         "referer",
         "is_asset",
         "asset_type",
-        "is_known_bot_ua",
         "is_robots_request",
         "ingested_at",
         "source_file",

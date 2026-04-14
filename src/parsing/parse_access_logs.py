@@ -37,7 +37,7 @@ LOG_PATTERN = re.compile(
 
 REQUEST_PATTERN = re.compile(
     r'^(?P<method>[A-Z]+)\s+(?P<target>\S+)(?:\s+(?P<protocol>HTTP/\d.\d))?$'
-)
+) # "GET /path HTTP/1.1"
 
 DYNAMIC_SEGMENT_PATTERNS = [
     re.compile(r"^\d+$"),                   # numeric IDs
@@ -91,7 +91,6 @@ class NormalizedEvent:
     user_agent: Optional[str]
     is_asset: bool
     asset_type: str
-    is_known_bot_ua: bool
     is_robots_request: bool
     ingested_at: str
     source_file: str
@@ -207,26 +206,6 @@ def infer_asset_type(path: str) -> tuple[bool, str]:
     return False, "html"
 
 
-def is_known_bot_user_agent(user_agent: Optional[str]) -> bool:
-    if not user_agent:
-        return False
-
-    ua = user_agent.lower()
-    bot_keywords = [
-        "bot",
-        "crawler",
-        "spider",
-        "ahrefsbot",
-        "googlebot",
-        "bingbot",
-        "yandexbot",
-        "duckduckbot",
-        "semrushbot",
-        "mj12bot",
-    ]
-    return any(keyword in ua for keyword in bot_keywords)
-
-
 def parse_bytes_sent(raw_value: str) -> Optional[int]:
     if raw_value == "-":
         return None
@@ -274,7 +253,6 @@ def parse_raw_line(raw_line: str, source_file: str, ingested_at: Optional[str] =
             user_agent=user_agent,
             is_asset=is_asset,
             asset_type=asset_type,
-            is_known_bot_ua=is_known_bot_user_agent(user_agent),
             is_robots_request=(path.lower() in ROBOTS_PATHS),
             ingested_at=ingested_at,
             source_file=source_file,

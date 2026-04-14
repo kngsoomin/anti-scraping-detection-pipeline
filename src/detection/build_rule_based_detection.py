@@ -82,6 +82,17 @@ def build_rule_based_detection(
          .otherwise(F.lit("benign"))
     )
 
+    df = df.withColumn(
+        "context_tag",
+        F.when(
+            (F.col("is_known_bot_domain") == True) |
+            (F.col("is_known_bot_ua") == True),
+            F.lit("known_bot_candidate")
+        )
+        .when(F.col("has_hostname") == False, F.lit("unresolved_host"))
+        .otherwise(F.lit("no_context_signal"))
+    )
+
     return df.select(
         "session_id",
         "session_date",
@@ -97,6 +108,10 @@ def build_rule_based_detection(
         "html_to_asset_ratio",
         "status_4xx_ratio",
         "mean_inter_request_gap",
+        "hostname",
+        "has_hostname",
+        "is_known_bot_domain",
+        "context_tag",
         "rule_score",
         "risk_band",
         "top_reasons",

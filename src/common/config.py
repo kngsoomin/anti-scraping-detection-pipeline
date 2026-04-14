@@ -50,6 +50,10 @@ class AppConfig:
     def detection(self) -> dict[str, Any]:
         return self.raw["detection"]
 
+    @property
+    def enrichment(self) -> dict[str, Any]:
+        return self.raw["enrichment"]
+
 
 def load_config(env_name: str) -> AppConfig:
     config_dir = Path("config")

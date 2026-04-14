@@ -1,5 +1,5 @@
-from src.schemas.sessionized_events import SESSIONIZED_EVENTS_SCHEMA
 from src.features.build_session_features import build_session_features
+from tests.conftest import SESSIONIZED_EVENT_TEST_SCHEMA
 
 
 def test_build_session_features_basic(spark, sessionized_event_factory):
@@ -49,7 +49,7 @@ def test_build_session_features_basic(spark, sessionized_event_factory):
         ),
     ]
 
-    df = spark.createDataFrame(rows, schema=SESSIONIZED_EVENTS_SCHEMA)
+    df = spark.createDataFrame(rows, schema=SESSIONIZED_EVENT_TEST_SCHEMA)
     out = build_session_features(df)
 
     row = out.collect()[0]

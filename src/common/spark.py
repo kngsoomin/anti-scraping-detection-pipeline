@@ -37,6 +37,10 @@ def get_spark(app_name_suffix: str, config: AppConfig) -> SparkSession:
             "spark.executor.memory",
             str(spark_cfg["executor_memory"]),
         )
+        .config(
+            "spark.sql.session.timeZone",
+            spark_cfg["session_timezone"],
+        )
         .config("spark.jars.packages", "org.apache.hadoop:hadoop-aws:3.3.4")
         .config("spark.hadoop.fs.s3a.impl", "org.apache.hadoop.fs.s3a.S3AFileSystem")
         .config("spark.hadoop.fs.s3a.aws.credentials.provider",

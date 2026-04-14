@@ -8,6 +8,7 @@ runtime:
 
 spark:
   app_name_prefix: anti-scraping
+  session_timezone: UTC
   master: local[*]
   parquet_vectorized_reader: false
   max_partition_bytes: 16777216
@@ -19,13 +20,18 @@ spark:
 paths:
   base_uri: data/output
   raw_text_input: data/kaggle/access.log
+  raw_logs: raw_logs
+  quarantined_raw_lines: quarantined_raw_lines
   normalized_events: normalized_events
   quarantined_raw_events: quarantined_raw_events
   sessionized_events: sessionized_events
   session_features: session_features
+  session_features_enriched: session_features_enriched
   suspicious_sessions: suspicious_sessions
   daily_abuse_summary: daily_abuse_summary
-  daily_abuse_summary_sample_json: daily_abuse_summary_sample_json
+  manifests: manifests
+  parse_failure_summary: parse_failure_summary
+  ip_hostname_lookup: data/kaggle/ip_hostname_lookup.csv
 
 sessionization:
   timeout_seconds: 1800
@@ -43,3 +49,24 @@ detection:
     high_min_score: 4
     medium_min_score: 2
     low_min_score: 1
+
+enrichment:
+  known_bot_domains:
+    - googlebot.com
+    - google.com
+    - googleusercontent.com
+    - search.msn.com
+    - bing.com
+    - crawl.facebook.com
+    - baidu.com
+    - baidu.jp
+
+  known_bot_ua_patterns:
+    - googlebot
+    - bingbot
+    - ahrefsbot
+    - yandexbot
+    - duckduckbot
+    - semrushbot
+    - mj12bot
+    - baiduspider

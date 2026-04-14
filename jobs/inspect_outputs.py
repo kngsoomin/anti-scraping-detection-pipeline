@@ -1,9 +1,9 @@
 from __future__ import annotations
 
-import sys
-
 from pyspark.sql import DataFrame
 from pyspark.sql import functions as F
+
+from jobs.cli_utils import parse_args, validate_cli_args, build_process_dates
 
 from src.common.config import load_config
 from src.common.paths import resolve_output_path
@@ -122,6 +122,10 @@ def show_suspicious_samples(
         "html_to_asset_ratio",
         "status_4xx_ratio",
         "mean_inter_request_gap",
+        "hostname",
+        "has_hostname",
+        "is_known_bot_domain",
+        "context_tag",
         "rule_score",
         "risk_band",
         "top_reasons",
@@ -132,35 +136,6 @@ def show_suspicious_samples(
         df.orderBy(F.desc("rule_score"), F.desc("requests_per_minute"))
         .select(*existing_cols)
         .show(limit, truncate=False)
-    )
-
-
-def show_known_bot_overlap(spark, suspicious_path: str, process_date: str | None) -> None:
-    print_section("KNOWN BOT OVERLAP")
-
-    df = safe_read_parquet(spark, suspicious_path)
-    if df is None:
-        return
-
-    df = apply_date_filter(df, process_date)
-
-    if "user_agent" not in df.columns:
-        print("[INFO] user_agent column not found.")
-        return
-
-    bot_regex = r"(?i)(bot|crawler|spider|ahrefsbot|googlebot|bingbot|yandexbot|duckduckbot|semrushbot|mj12bot)"
-
-    flagged_df = df.filter(F.col("risk_band") != "benign")
-
-    (
-        flagged_df.withColumn(
-            "is_known_bot_like_ua",
-            F.col("user_agent").rlike(bot_regex)
-        )
-        .groupBy("is_known_bot_like_ua")
-        .count()
-        .orderBy(F.desc("count"))
-        .show(truncate=False)
     )
 
 
@@ -180,8 +155,13 @@ def show_daily_summary_samples(
     df.orderBy("event_date").show(limit, truncate=False)
 
 
-def show_feature_grain_check(spark, session_features_path: str, process_date: str | None) -> None:
-    print_section("SESSION FEATURE GRAIN CHECK")
+def show_feature_grain_check(
+    spark,
+    session_features_path: str,
+    process_date: str | None,
+    title: str,
+) -> None:
+    print_section(title)
 
     df = safe_read_parquet(spark, session_features_path)
     if df is None:
@@ -192,9 +172,30 @@ def show_feature_grain_check(spark, session_features_path: str, process_date: st
     total_rows = df.count()
     distinct_sessions = df.select("session_id").distinct().count() if "session_id" in df.columns else None
 
-    print(f"session_features rows: {total_rows}")
+    print(f"rows: {total_rows}")
     print(f"distinct session_id: {distinct_sessions}")
     print(f"grain_ok: {total_rows == distinct_sessions}")
+
+
+def show_context_distribution(spark, suspicious_path: str, process_date: str | None) -> None:
+    print_section("CONTEXT TAG DISTRIBUTION")
+
+    df = safe_read_parquet(spark, suspicious_path)
+    if df is None:
+        return
+
+    df = apply_date_filter(df, process_date)
+
+    if "context_tag" not in df.columns:
+        print("[INFO] context_tag column not found.")
+        return
+
+    (
+        df.groupBy("context_tag")
+        .count()
+        .orderBy(F.desc("count"))
+        .show(truncate=False)
+    )
 
 
 def main(env_name: str, process_date: str | None = None) -> None:
@@ -206,6 +207,7 @@ def main(env_name: str, process_date: str | None = None) -> None:
         "quarantined_raw_events": resolve_output_path(config, "quarantined_raw_events"),
         "sessionized_events": resolve_output_path(config, "sessionized_events"),
         "session_features": resolve_output_path(config, "session_features"),
+        "session_features_enriched": resolve_output_path(config, "session_features_enriched"),
         "suspicious_sessions": resolve_output_path(config, "suspicious_sessions"),
         "daily_abuse_summary": resolve_output_path(config, "daily_abuse_summary"),
     }
@@ -215,7 +217,12 @@ def main(env_name: str, process_date: str | None = None) -> None:
 
     show_row_counts(spark, paths, process_date)
     show_quarantine_stats(spark, paths["quarantined_raw_events"])
-    show_feature_grain_check(spark, paths["session_features"], process_date)
+    show_feature_grain_check(
+        spark, paths["session_features"], process_date, "SESSION FEATURE GRAIN CHECK"
+    )
+    show_feature_grain_check(
+        spark, paths["session_features_enriched"], process_date, "ENRICHED SESSION FEATURE GRAIN CHECK"
+    )
     show_risk_distribution(spark, paths["suspicious_sessions"], process_date)
     show_suspicious_samples(
         spark,
@@ -224,13 +231,24 @@ def main(env_name: str, process_date: str | None = None) -> None:
         limit=10,
         exclude_benign=True,
     )
-    show_known_bot_overlap(spark, paths["suspicious_sessions"], process_date)
+    show_context_distribution(spark, paths["suspicious_sessions"], process_date)
     show_daily_summary_samples(spark, paths["daily_abuse_summary"], process_date, limit=10)
 
     spark.stop()
 
 
 if __name__ == "__main__":
-    env_name = sys.argv[1] if len(sys.argv) > 1 else "local"
-    process_date = sys.argv[2] if len(sys.argv) > 2 else None
-    main(env_name, process_date)
+    args = parse_args()
+    validate_cli_args(args)
+    process_dates = build_process_dates(
+        process_date=args.process_date,
+        start_date=args.start_date,
+        end_date=args.end_date,
+    )
+
+    if len(process_dates) != 1:
+        raise ValueError(
+            "Exactly one date must be provided. Use --process-date to test a single job."
+        )
+
+    main(args.env_name, process_dates[0])

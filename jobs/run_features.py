@@ -1,8 +1,8 @@
 from __future__ import annotations
 
-import sys
-
 from pyspark.sql import functions as F
+
+from jobs.cli_utils import parse_args, validate_cli_args, build_process_dates
 
 from src.common.config import load_config
 from src.common.paths import resolve_output_path
@@ -34,6 +34,15 @@ def main(env_name: str, process_date: str) -> None:
 
 
 if __name__ == "__main__":
-    env_name = sys.argv[1] if len(sys.argv) > 1 else "local"
-    process_date = sys.argv[2] if len(sys.argv) > 2 else None
-    main(env_name, process_date)
+    args = parse_args()
+    validate_cli_args(args)
+    process_dates = build_process_dates(
+        process_date=args.process_date,
+        start_date=args.start_date,
+        end_date=args.end_date,
+    )
+
+    if len(process_dates) != 1:
+        raise ValueError("Exactly one date must be provided. Use --process-date to test a single job")
+
+    main(args.env_name, process_dates[0])
