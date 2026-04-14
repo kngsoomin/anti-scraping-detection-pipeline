@@ -34,7 +34,6 @@ logs/
 data/
 *.parquet
 *.json
-docs/
 
 # =========================
 # Env / secrets
